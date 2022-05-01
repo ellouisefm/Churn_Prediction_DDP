@@ -87,13 +87,20 @@ ui <- material_page(
                         button_icon = "library_books",
                         button_color = "deep-purple darken-1",
                         title = "Churn Prediction Quick Guide",
-                        tags$p(strong('STEP 1:'), ' Click ', span('"CHURN DATA..."',  style = "color:teal"), 'to upload Churn Data for training. Make sure training and testing datasets have the same feature names'),
-                        tags$p(strong('STEP 2:'), ' Click ', span('"NEW DATA..."',  style = "color:teal"), 'to upload New Data for testing. If you intent to check the Confusion Matrix, New Data must have Churn labels.'),
+                        tags$p(strong('STEP 1:'), ' Click ', span('"CHURN DATA..."',  style = "color:teal"), 'to upload Churn Data for training. Make sure that the training and testing datasets have the same feature names'),
+                        tags$p(strong('STEP 2:'), ' Click ', span('"NEW DATA..."',  style = "color:teal"), 'to upload New Data for testing. If you intend to check the Confusion Matrix, New Data must have Churn labels.'),
                         tags$p(strong('STEP 3:'), ' Choose model from the dropdown menu. '), 
                         tags$p(em('Note: All Data model uses all data in the Churn dataset; Version 1 uses first 50% of the dataset; Version 2 uses the last 50% of the dataset.')),
                         tags$p(strong('STEP 4:'), ' Toggle switches to select the tables and/or plot to be generated. '), 
                         tags$p(strong('STEP 5:'), ' Click ', span('"GENERATE"',  style = "color:teal"), 'button to view model output.'),
-                        tags$p(strong('STEP 6:'), ' Click ', span('"DOWNLOAD"',  style = "color:teal"), 'button if you wish to download the generated predictions in a .csv file.'),
+                        tags$p(strong('STEP 6:'), ' Click ', span('"DOWNLOAD"',  style = "color:teal"), 'button if you wish to save the generated predictions in a .csv file.'),
+                        br(),
+                        material_card(
+                          hr(),
+                          HTML("<p>App by: <a href='https://github.com/agaknows'>agaknows</a> & <a href='https://github.com/ellouisefm'>ellouisefm</a></p>"),
+                          HTML("<p>App code: <a href='https://github.com/ellouisefm/Churn_Prediction_DDP'>Churn Prediction DDP Repository</a></p>"),
+                          color = 'indigo lighten-5'
+                        )
                       ),
                       divider = TRUE,
                       depth = 2
