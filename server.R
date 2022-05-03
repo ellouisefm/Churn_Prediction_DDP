@@ -6,7 +6,6 @@ library(rattle)
 library(partykit)
 library(rpart.plot)
 library(DT)
-library(ggplot2)
 library(shinyjs)
 
 library(shinymaterial)
@@ -14,15 +13,16 @@ library(shinymaterial)
 shinyServer(function(input, output, session) {
   # Upload Churn Data
   churn_data <- reactive({
+    req(input$churn_upload)
     inFile <- input$churn_upload
     if (is.null(inFile))
       return(NULL)
     churn_data <- read.csv(inFile$datapath, header = TRUE,sep = ",", stringsAsFactors = TRUE)
     return(churn_data)
   })
-  
   # Upload New data
   new_data <- reactive({
+    req(input$new_upload)
     inFile <- input$new_upload
     if (is.null(inFile))
       return(NULL)
@@ -30,47 +30,87 @@ shinyServer(function(input, output, session) {
     return(df)
   })
   
+  # Upload Additional Training data
+  add_data <- reactive({
+    req(churn_data())
+    inFile <- input$append_upload
+    if (is.null(inFile))
+      return(NULL)
+    df <- read.csv(inFile$datapath, header = TRUE,sep = ",", stringsAsFactors = TRUE)
+    # df_all <- rbind(churn_data(), df)
+    return(df)
+  })
+  
+  df_all <- reactiveValues(data=NULL)
+  observe(
+    if(input$append_btn){
+      req(add_data())
+      df_all$data <- rbind(churn_data(), add_data())
+      output$append_text <- renderText({"Appended additional training data."})
+    }
+    else{
+      req(churn_data)
+      df_all$data <- churn_data()
+    }
+  )
+  
+  append_data <- reactive({
+    new_all_data <- df_all$data
+    return(new_all_data)
+  })
+  
   # Split Churn Data, get top 50% for Version 1 model
   top50 <- reactive({
-    df_f50 = churn_data()[1:(0.5*nrow(churn_data())),]
+    df_f50 = append_data()[1:(0.5*nrow(append_data())),]
     return(df_f50)
   })
   # Split Churn Data, get last 50% for Version 2 model
   last50 <- reactive({
-    df_l50 = churn_data()[(0.5*nrow(churn_data())):nrow(churn_data()),]
+    df_l50 = append_data()[(0.5*nrow(append_data())+1):(nrow(append_data())+1),]
     return(df_l50)
   })
   
   # Data Tab, output churn data table
   output$churndata_table <- DT::renderDataTable({
-    if(input$churn_table){
-      churn_data()
+    if(input$churn_table & input$f50_checkbox & input$l50_checkbox){
+      append_data()
     }
-  }, options = list(scrollX = TRUE), caption = "Churn Data")
+    else if(input$churn_table & input$f50_checkbox & !input$l50_checkbox){
+      top50()
+    }
+    else if(input$churn_table & !input$f50_checkbox & input$l50_checkbox){
+      last50()
+    }
+  }, options = list(scrollX = TRUE), caption = "CHURN DATA")
   # Data Tab, output new data table
   output$newdata_table<- DT::renderDataTable({
     if(input$new_table){
       new_data()
     }
-  }, options = list(scrollX = TRUE), caption = "New Data")
+  }, options = list(scrollX = TRUE), caption = "NEW DATA")
+  
   # Variables change per selection
   training_data <- reactiveValues(data=NULL)
   text_temp <- reactiveValues(data=NULL)
   # Change training data based on model selected
   observe(
     if(input$model_dropdown == "all"){
-      training_data$data <- churn_data()
+      req(append_data())
+      training_data$data <- append_data()
       text_temp$data <- "ALL DATA"
     }
     else if(input$model_dropdown == "v1"){
+      req(append_data())
       training_data$data <- top50()
       text_temp$data <- "VERSION 1"
     }
     else if(input$model_dropdown == "v2"){
+      req(append_data())
       training_data$data <- last50()
       text_temp$data <- "VERSION 2"
   }
   )
+  
   # Model selected text output when you generate
   model_text <- eventReactive(input$generate_btn,{
     text_out <- text_temp$data
@@ -82,6 +122,7 @@ shinyServer(function(input, output, session) {
   
   # Model
   tree_model <- eventReactive(input$generate_btn,{
+    req(training_data$data)
     all_model = rpart(Churn.~
                         Account.Length +
                         Int.l.Plan +
@@ -178,7 +219,7 @@ shinyServer(function(input, output, session) {
       show("tree")
     }
     else if(!input$tree_sw){
-     hide("tree")
+      hide("tree")
     }
   }, ignoreInit = TRUE)
 
@@ -204,10 +245,10 @@ shinyServer(function(input, output, session) {
   output$downloadData <- downloadHandler(
     filename = function(){
       paste("churn_prediction_",input$model_dropdown, ".csv", sep = "")
-      }, 
+      },
     content = function(fname){
       write.csv(predict_out(), fname)
     }
   )
-  
+
 })
